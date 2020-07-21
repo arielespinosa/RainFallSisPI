@@ -1,0 +1,66 @@
+
+procedure PrepareSisPI()
+
+endprocedure
+
+//--------------------------------------------------------------
+procedure PrepareGPM()
+
+endprocedure
+
+
+//--------------------------------------------------------------
+procedure CombineSisPIandGPM()
+
+endprocedure
+
+//--------------------------------------------------------------
+procedure BuildTrainDataset()
+
+endprocedure
+
+
+//--------------------------------------------------------------
+procedure FindMinMaxValues()
+
+endprocedure
+
+//--------------------------------------------------------------
+procedure FilesWithNaNValues()
+
+endprocedure
+
+
+//--------------------------------------------------------------
+procedure TrainModels()
+
+endprocedure
+
+
+//--------------------------------------------------------------
+procedure EvaluateModels()
+
+endprocedure
+
+
+//--------------------------------------------------------------
+procedure MakeGridPredictions()
+
+endprocedure
+
+
+//--------------------------------------------------------------
+procedure EvaluateModelsOnGridPredictions()
+
+endprocedure
+
+
+
+
+
+
+
+
+
+
+

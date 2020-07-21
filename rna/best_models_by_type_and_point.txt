@@ -1,0 +1,29 @@
+Mejores modelos del este:
+rna/outputs/tts_5_east_mlp_model_9
+rna/outputs/tts_east_nsvm_model_27
+rna/outputs/tts_east_conv_model_3
+
+
+Mejores modelos del norte:
+rna/outputs/tts_5_north_mlp_model_7
+rna/outputs/tts_north_nsvm_model_18
+rna/outputs/tts_north_conv_model_2
+rna/outputs/tts_north_lstm_model_6
+
+Mejores modelos del oeste:
+rna/outputs/tts_5_west_mlp_model_19
+rna/outputs/tts_west_nsvm_model_21
+rna/outputs/tts_5_west_conv_model_3
+
+
+Mejores modelos del sur:
+rna/outputs/tts_5_south_mlp_model_29
+rna/outputs/tts_5_south_nsvm_model_1
+rna/outputs/tts_south_conv_model_3
+rna/outputs/tts_south_lstm_model_10
+
+Mejores modelos del centro:
+rna/outputs/tts_5_center_mlp_model_25
+rna/outputs/tts_5_center_nsvm_model_28
+rna/outputs/tts_center_conv_model_3
+rna/outputs/tts_5_center_lstm_model_6
