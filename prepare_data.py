@@ -25,42 +25,42 @@ class PrepareData:
         pncdf.export_sispi_lat_lon()
 
     @classmethod
-    def prepare_gpm(cls, grid=None):
+    def prepare_gpm(cls, grid=None, gpm_dir=None):
         if grid is None:
             grid = {"max_lat": 24.35, "min_lat": 19.25, "max_lon": -73.75, "min_lon": -85.75}
 
-        gpm_files = fileslist(config['DIRS']['GPM_DIR'])
+        gpm_files = fileslist(config['DIRS']['GPM_DIR']) if gpm_dir else fileslist(config['DIRS']['GPM_DIR'])
         gpm_files.sort()
         gpm_to_hourly(grid, gpm_files)
-        export_gpm_lat_lon("/home/maibyssl/Ariel/GPM_2017/3B-HHR.MS.MRG.3IMERG.20170609-S160000-E162959.0960.V06B.HDF5",
-                           grid)
+        export_gpm_lat_lon(config['GPM_FILE'], grid)
 
-    # This not work well.
     @classmethod
     def __interpolate_gpm_to_sispi(cls, month, gpm_lat, gpm_lon, sispi_lat, sispi_lon):
         gpm_points = np.concatenate((gpm_lon.reshape(gpm_lon.size, 1), gpm_lat.reshape(gpm_lat.size, 1)), axis=1)
-        sispi_points = np.concatenate((sispi_lon.reshape(sispi_lon.size, 1), sispi_lat.reshape(sispi_lat.size, 1)),
-                                      axis=1)
+        sispi_points = np.concatenate((sispi_lon.reshape(sispi_lon.size, 1), sispi_lat.reshape(sispi_lat.size, 1)), axis=1)
 
         t = datetime(2017, month, 1)
-        while t.month <= month:            
-            gpm_data = np.loadtxt(
-                os.path.join(config['DIRS']['GPM_OUTPUT_DIR'],
-                            'd_%04d%02d%02d%02d.txt' % (t.year, t.month, t.day, t.hour)),
-                delimiter=',')
+        while t.month <= month:    
+            try:        
+                gpm_data = np.loadtxt(
+                    os.path.join(config['DIRS']['GPM_OUTPUT_DIR'],
+                                'd_%04d%02d%02d%02d.txt' % (t.year, t.month, t.day, t.hour)),
+                                delimiter=',')
 
-            interpolator = NearestNDInterpolator(gpm_points, gpm_data.flatten())
-            interp_values = interpolator(sispi_points).reshape(183, 411)
+                interpolator = NearestNDInterpolator(gpm_points, gpm_data.flatten())
+                interp_values = interpolator(sispi_points).reshape(183, 411)
 
-            np.savetxt(
-                os.path.join(config['DIRS']['GPM_INTERPOLATED'],
-                            'd_%04d%02d%02d%02d.txt' % (t.year, t.month, t.day, t.hour)),
-                interp_values, delimiter=",", fmt="%7.2f")
+                np.savetxt(
+                    os.path.join(config['DIRS']['GPM_INTERPOLATED'],
+                                'd_%04d%02d%02d%02d.txt' % (t.year, t.month, t.day, t.hour)),
+                    interp_values, delimiter=",", fmt="%7.2f")
 
-            t += timedelta(hours=1)
-            del interpolator
+                t += timedelta(hours=1)
+                del interpolator
+
+            except:
+                pass
     
-
     @classmethod
     def __interpolate_gpm(cls, month_start=1, month_end=12):
         gpm_lat = np.loadtxt(config['GPM_LAT'], delimiter=',')
@@ -77,9 +77,9 @@ class PrepareData:
         i, c = 0, 0
         for process in process_list:
             if c > 2:
-                process_list[i - 3].join()
-                process_list[i - 2].join()
-                process_list[i - 1].join()
+                process_list[i-3].join()
+                process_list[i-2].join()
+                process_list[i-1].join()
                 c = 0
             process.start()
 
@@ -107,8 +107,9 @@ class PrepareData:
             write_serialize_file(sispi, os.path.join(config['DIRS']['DATASET'], filename + '.dat'))
 
     @classmethod
-    def combine_sispi_and_gpm(cls):
-        #cls.__interpolate_gpm()
+    def combine_sispi_and_gpm(cls, interpoated=True):
+        if not interpoated:
+            cls.__interpolate_gpm()
         cls.__join_sispi_and_gpm()
 
     @classmethod

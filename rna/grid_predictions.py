@@ -1,4 +1,4 @@
-from keras_models import MLP
+from .keras_models import MLP
 from preprocess.file import read_serialize_file
 import numpy as np
 import os

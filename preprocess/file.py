@@ -3,10 +3,9 @@ import os
 import re
 import tarfile
 import bz2
-from os import path, listdir
+from os import path, listdir, scandir
 from os.path import abspath
 import shutil
-from os import scandir
 from pickle import dump, load
 from datetime import datetime, timedelta
 

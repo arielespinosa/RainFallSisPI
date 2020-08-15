@@ -84,7 +84,22 @@ def main_interface():
 
 
 if __name__ == '__main__':
-    main_interface()
+    #main_interface()
+    from preprocess.file import read_serialize_file, write_serialize_file
+    #import numpy as np
+
+    data = read_serialize_file('test/data/d_2017070900.dat')
+    print(data['RAIN_GPM'][0, 0])
+    print(data['RAIN_GPM'][0, 1])
+
+   
+    from preprocess.data_exploration import ExploratoryAnalisys as ea
+
+
+    files = ea.files_with_negative_values('test/data/')
+    print(files)
+    
+    #write_serialize_file(data, 'test/data/d_2017070900.dat')
 
 
 

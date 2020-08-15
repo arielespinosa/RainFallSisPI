@@ -27,6 +27,7 @@ configuration = {
     'TEST': {
         'PREPROCESS': os.path.join(BASE_DIR, "test/preprocess"),
     },
+    'GPM_FILE':'/home/maibyssl/Ariel/GPM_2017/3B-HHR.MS.MRG.3IMERG.20170609-S160000-E162959.0960.V06B.HDF5',
 
 }
 

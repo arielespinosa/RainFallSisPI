@@ -2,6 +2,8 @@ import numpy as np
 from settings import configuration as config
 from preprocess.file import fileslist, read_serialize_file, write_serialize_file
 
+"""
+borrar
 def find_min_max_values(dataset):
     data = dict()
     for key in dataset.keys():
@@ -9,14 +11,18 @@ def find_min_max_values(dataset):
         data.update(var_key)                                                                                                           
         del var_key
     return data
+"""
 
 class ExploratoryAnalisys:
 
     @classmethod
-    def files_with_nan_values_in_dataset(cls):
+    def files_with_nan_values_in_dataset(cls, dataset_files=None):
         files_with_nan_values = []
 
-        for file in fileslist(config['DIRS']['DATASET_HABANA']):
+        if dataset_files is None:
+            dataset_files = config['DIRS']['DATASET_HABANA']        
+
+        for file in fileslist(dataset_files):
             data = read_serialize_file(file)
             if np.isnan(data['RAIN_GPM']).any() or np.isnan(data['RAIN_SISPI']).any():
                 files_with_nan_values.append((file.split('/')[-1]))
@@ -24,10 +30,13 @@ class ExploratoryAnalisys:
         return files_with_nan_values
 
     @classmethod
-    def files_with_negative_values(cls):
+    def files_with_negative_values(cls, dataset_files=None):
         files_with_negative_values = []
 
-        for file in fileslist(config['DIRS']['DATASET_HABANA']):
+        if dataset_files is None:
+            dataset_files = config['DIRS']['DATASET_HABANA']  
+
+        for file in fileslist(dataset_files):
             data = read_serialize_file(file)
             if np.isneginf(data['RAIN_GPM']).any() or np.isnan(data['RAIN_SISPI']).any():
                 files_with_negative_values.append((file.split('/')[-1]))
@@ -35,13 +44,24 @@ class ExploratoryAnalisys:
         return files_with_negative_values
 
     @classmethod
-    def find_min_max_value(cls):
+    def __find_min_max_values(cls, dataset):
+        data = dict()
+        for key in dataset.keys():
+            var_key = dict({ key:{"min": np.amin(dataset[key]), "max":np.amax(dataset[key])} })      
+            data.update(var_key)                                                                                                           
+            del var_key
+        return data
+
+    @classmethod
+    def find_min_max_value(cls, dataset_files=None):
         minQ2, maxQ2, minT2, maxT2, maxRAIN_SISPI, maxRAIN_GPM  = 10.0, 0.0, 500.0, 0.0, 0.0, 0.0
         day_maxRAIN_SISPI, day_maxRAIN_GPM = "", ""
 
-        for file in fileslist(config['DIRS']['DATASET_HABANA']):
+        if dataset_files is None:
+            dataset_files = config['DIRS']['DATASET_HABANA']  
 
-            data = find_min_max_values(read_serialize_file(file)) 
+        for file in fileslist(dataset_files):
+            data = cls.__find_min_max_values(read_serialize_file(file)) 
 
             if data["Q2"]["min"] < minQ2:        
                 minQ2 = data["Q2"]["min"]
@@ -89,7 +109,7 @@ class ExploratoryAnalisys:
                 },
             }
 
-        write_serialize_file(results, "outputs/min_max_values_in_dataset.dat")
+        #write_serialize_file(results, "outputs/min_max_values_in_dataset.dat")
 
         return results
 
