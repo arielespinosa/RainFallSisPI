@@ -13,12 +13,14 @@ import os
 
 import threading
 from multiprocessing import Process
+
 # Delete from here
 import time
 from datetime import datetime, timedelta                  
 from os import path, listdir, scandir
 from os.path import abspath
 import shutil
+
 
 def plot_precipitation_map(precipitation, ylat, xlon):
     clevs = [0,0.1,2,5,10,15,20,30,40,50,70,100,150,200,250]
@@ -144,7 +146,7 @@ def plot(file, model_type, folder):
     ylat = np.loadtxt("data/habana_lat.txt", delimiter=',')
     xlon = np.loadtxt("data/habana_lon.txt", delimiter=',')
 
-    plt.suptitle('Relación entre GPM, SisPI y la RNA para las {3}h del día {2}/{1}/{0}'.format(filename[2:6], filename[6:8], filename[8:10], filename[10:12]))
+    plt.suptitle('Relación entre GPM, SisPI y la RNA para las {3} h del dia {2}/{1}/{0}'.format(filename[2:6], filename[6:8], filename[8:10], filename[10:12]))
 
     # Plot SisPI
     subplot(2,2,1)
@@ -275,58 +277,62 @@ def plot_results(data, save_filename, subtitule):
     fig.savefig(save_filename)
     plt.close(fig)
 
-def predict(y, m, d, h, save_path):
-    file = "d_%04d%02d%02d%02d.txt" % (y, m, d, h)
-    
-    try:
-        dataset = np.loadtxt("data/full_dataset_txt/{}".format(file), delimiter=",")
-        rna     = np.loadtxt("rna/grid_predictions/{}".format(file), delimiter=",")
-        gpm     = np.loadtxt("data/gpm_dataset/gpm_hourly_{}".format(file.split("_")[1]), delimiter=",")
 
-        rain_gpm = gpm[37:42, 30:38]
-        rain_gpm_interpolated = dataset[:, -1],
-        rain_gpm_interpolated = rain_gpm_interpolated[0]
-        rain_sispi = dataset[:, -2],
-        rain_sispi = rain_sispi[0]
-        rain_rna = rna
+class Plot:
 
-        rain_gpm[rain_gpm < 1] = 0
-        rain_gpm_interpolated[rain_gpm_interpolated < 1] = 0
-        rain_sispi[rain_sispi < 1] = 0
-        rain_rna[rain_rna < 1] = 0
+    @classmethod
+    def grid_prediction(cls, y, m, d, h, save_path):
+        try:
+            dataset = np.loadtxt("data/predict_grid/d_{:4d}{:02d}{:02d}{:02d}.txt".format(y, m, d, h), delimiter=',')
 
-        data = {
-            "rain_gpm" : rain_gpm,
-            "rain_gpm_interpolated" : rain_gpm_interpolated.reshape(15, 25),
-            "rain_sispi" : rain_sispi.reshape(15, 25),
-            "rain_rna"   : rain_rna,
-        } 
+            ylat = np.loadtxt("data/habana_lat.txt", delimiter=',')
+            xlon = np.loadtxt("data/habana_lon.txt", delimiter=',')
 
-        save_filename = os.path.join(save_path, "{}.png".format(file.split(".")[0]))
+            plt.style.use('seaborn')
+            plt.suptitle('Relación entre GPM, SisPI y la RNA para las {:02d} UTC del {:02d}/{:02d}/{:4d}'.format(h, d, m, y))
 
-        controler(data=data, map="predictions3", 
-            subtitle='Relación entre SisPI, GPM, GPM interpolado y la RNA para las {2}h del {0}/{1}/2017'.format(file[6:8], file[8:10], file[10:12]), 
-            save_filename=save_filename, show=False)
-    except:
-        print("Error on execution!!!")
+            # Plot GPM
+            plt.subplot(2,1)
+            rain = dataset[:, -1].reshape(15, 25)
+            rain[rain < 1] = 0
+            plot_precipitation_map(rain, ylat, xlon)
+            plt.title('GPM') 
 
+            # Plot SisPI
+            plt.subplot(2, 2)
+            rain = dataset[:, -2].reshape(15, 25)
+            rain[rain < 1] = 0
+            plot_precipitation_map(rain, ylat, xlon)
+            plt.title('SisPI')    
 
-def plot_grid_prediction_monthly(y, m, d, h, save_path):
-    
-    t = datetime(y, m, d, h)
+            # Plot RNA
+            plt.subplot(2,3)
+            rain = np.loadtxt("rna/grid_predictions/d_{:4d}{:02d}{:02d}{:02d}.txt".format(y, m, d, h), delimiter=',')
+            rain[rain < 1] = 0
+            plot_precipitation_map(rain, ylat, xlon)
+            plt.title('RNA') 
 
-    while t.month == m:
-       
-        p = Process(target=predict, args=(t.year, t.month, t.day, t.hour, save_path))
-        p.start() 
-        p.join()
-        
-        t += timedelta(hours=1)
+            plt.show()
+        except:
+            print("Error on execution!!!")
+
+    @classmethod
+    def plot_grid_prediction_monthly(cls, y, m, d, h, save_path):        
+        t = datetime(y, m, d, h)
+
+        while t.month == m:        
+            p = Process(target=cls.grid_prediction, args=(t.year, t.month, t.day, t.hour, save_path))
+            p.start() 
+            p.join()
+            
+            t += timedelta(hours=1)
 
 
 if __name__ == "__main__": 
 
-    save_path = "plots/grid_prediction_none_values_less_than_zero_and_gpm/"
+    #save_path = "plots/grid_prediction_none_values_less_than_zero_and_gpm/"
+    pass
+    #grid_prediction(2017, 4, 28, 23, "rna/grid_predictions/{}.png".format(file.split('.')[0]))
 
     """
     p1 = Process(target=plot_grid_prediction_monthly, args=(2017, 1, 1, 4, save_path))

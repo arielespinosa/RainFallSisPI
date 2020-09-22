@@ -7,28 +7,52 @@ LOGS_DIR_PATH = os.path.join(BASE_DIR, "rna/logs/")
 
 configuration = {
     'DIRS': {
-        'SISPI_DIR': os.path.join("test/preprocess"),
-        'SISPI_OUTPUT_DIR': os.path.join(BASE_DIR, "data/temp_sispi_output"),
-        'SISPI_SERIALIZED_OUTPUT_DIR': os.path.join(BASE_DIR, "data/sispi"),
+        # Where compresed SisPI files are stored
+        'SISPI_DIR': "/home/maibyssl/Ariel/Data/SisPI", 
 
+        # Where uncompress SisPI tar.gz files before serialization.
+        'SISPI_OUTPUT_DIR': os.path.join(BASE_DIR, "data/sispi_output"),
+
+        # Where store serialized SisPI nc files
+        'SISPI_SERIALIZED_OUTPUT_DIR': os.path.join(BASE_DIR, "data/sispi_serialized_output"),
+
+        # Where store serialized SisPI hourly rain data. RAINNC changed to RAIN_SISPI.
+        'SISPI_HOURLY_OUTPUT_DIR': os.path.join(BASE_DIR, "data/sispi_hourly"),
+
+        # Where GPM files are stored
+        'GPM_DIR': "/home/maibyssl/Ariel/Data/GPM_2017",
+
+        # Where store serialized GPM hdf5 files
+        'GPM_OUTPUT_DIR': os.path.join(BASE_DIR, "data/gpm"),
+
+        # Where store interpolated GPM data to SisPI (all grid)
+        'GPM_INTERPOLATED': os.path.join(BASE_DIR, "data/gpm_interpolated"),
+
+        # Where store SisPI and GPM interpolated data
         'DATASET': os.path.join(BASE_DIR, "data/dataset"),
+
+        # Where store habana section from 'DATASET'.
         'DATASET_HABANA': os.path.join(BASE_DIR, "data/dataset_habana"),
+        'DATASET_HABANA_TXT': os.path.join(BASE_DIR, "data/dataset_habana_txt"),
+
+        # Where store point choices for train models
         'TRAIN_DATASET': os.path.join(BASE_DIR, "data/train_dataset"),
 
-        'GPM_DIR': "/home/maibyssl/Ariel/GPM_2017",
-        'GPM_OUTPUT_DIR': os.path.join(BASE_DIR, "data/gpm"),
-        'GPM_INTERPOLATED': os.path.join(BASE_DIR, "data/gpm_interpolated"),
+        # Where store trained models
+        'MODELS_OUTPUT': os.path.join(BASE_DIR, "rna/outputs"),
     },
+    
+    # SisPI & GPM lat-long data
     'SISPI_LAT': os.path.join(BASE_DIR, "data/sispi_lat.txt"),
     'SISPI_LON': os.path.join(BASE_DIR, "data/sispi_lon.txt"),
     'GPM_LAT': os.path.join(BASE_DIR, "data/gpm_lat.txt"),
     'GPM_LON': os.path.join(BASE_DIR, "data/gpm_lon.txt"),
+    
+    # GPM example file for get metadata
+    'GPM_FILE':'3B-HHR.MS.MRG.3IMERG.20170101-S000000-E002959.0000.V06B.HDF5',
 
-    'TEST': {
-        'PREPROCESS': os.path.join(BASE_DIR, "test/preprocess"),
-    },
-    'GPM_FILE':'/home/maibyssl/Ariel/GPM_2017/3B-HHR.MS.MRG.3IMERG.20170609-S160000-E162959.0960.V06B.HDF5',
-
+    # SisPI example file for get metadata
+    'SISPI_FILE':'wrfout_d03_2017-01-01_00:00:00',
 }
 
 

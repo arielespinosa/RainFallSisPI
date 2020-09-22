@@ -1,10 +1,10 @@
 import os
+from multiprocessing import Process
 import numpy as np
 from datetime import datetime, timedelta
-from multiprocessing import Process
 from scipy.interpolate import NearestNDInterpolator
+from files.gpm import GPM
 from preprocess.prepare_netcdf import PrepareNetCDF as pncdf
-from preprocess.prepare_gpm import gpm_to_hourly, export_gpm_lat_lon
 from preprocess.file import fileslist, read_serialize_file, write_serialize_file
 from settings import configuration as config
 
@@ -12,27 +12,60 @@ from settings import configuration as config
 class PrepareData:
 
     @classmethod
-    def prepare_sispi(cls):
-        print("Descomprimiendo los ficheros tar.gz y serializando los ficheros NetCDF...")
-        # Ver como hacer para que no se ejecute lo siguiente hasta que no termine este proceso.
-        # Como los hilos se ejecutan no en el principal, el programa continua.
+    def uncompress_sispi(cls):
+        print("Descomprimiendo los ficheros tar.gz y serializando los ficheros NetCDF.")
         pncdf.start_serialization()
-        print("Eliminando los ficheros NetCDF correspondientes a las 25-36 horas...")
-        pncdf.remove_not_required_files()
-        print("Copiando los ficheros a la dirección correcta...")
-        pncdf.put_sispi_files_on_right_path()
-        print("Exportando latitud y longitud de SisPI...")
-        pncdf.export_sispi_lat_lon()
+
+    @classmethod
+    def prepare_sispi(cls):
+        print("Eliminando los ficheros NetCDF correspondientes a las 25-36 horas de pronóstico.")
+        #pncdf.remove_not_required_files()
+        
+        print("Copiando los ficheros a la dirección correcta.")
+        #pncdf.put_sispi_files_on_right_path()
+        
+        print("Exportando latitud y longitud de SisPI.")
+        #pncdf.export_sispi_lat_lon(config['SISPI_FILE'])
+
+        print("Convirtiendo los datos de SisPI de acumulado a horario.")
+        pncdf.sispi_rain_to_hour()
+
+    @classmethod
+    def __gpm_filename(cls, filename, as_dat = False):
+        filename = filename.split("3IMERG.")[-1].split("-")
+        if as_dat:
+            filename = "d_" + filename[0] + filename[1][1:3] + ".dat"
+        else:
+            filename = "d_" + filename[0] + filename[1][1:3] + ".txt"
+        return filename
+
+    @classmethod
+    def __gpm_to_hourly(cls, grid, gpm_files_list, save_as_dat=False):
+        for i in range(1, len(gpm_files_list), 2):
+            filename = os.path.join(config['DIRS']['GPM_OUTPUT_DIR'], cls.__gpm_filename(gpm_files_list[i]))
+
+            file1 = GPM(gpm_files_list[i-1], grid)
+            file2 = GPM(gpm_files_list[i], grid)
+            hourly_rain = file1.rain() + file2.rain()
+
+            np.savetxt(filename, hourly_rain, delimiter=",", fmt="%7.2f")
+            
+            if save_as_dat:
+                write_serialize_file(hourly_rain, filename)
 
     @classmethod
     def prepare_gpm(cls, grid=None, gpm_dir=None):
         if grid is None:
             grid = {"max_lat": 24.35, "min_lat": 19.25, "max_lon": -73.75, "min_lon": -85.75}
 
-        gpm_files = fileslist(config['DIRS']['GPM_DIR']) if gpm_dir else fileslist(config['DIRS']['GPM_DIR'])
+        gpm_files = fileslist(gpm_dir) if gpm_dir else fileslist(config['DIRS']['GPM_DIR'])
         gpm_files.sort()
-        gpm_to_hourly(grid, gpm_files)
-        export_gpm_lat_lon(config['GPM_FILE'], grid)
+        cls.__gpm_to_hourly(grid, gpm_files)
+        
+        # Exporting GPM lat and long
+        gpm = GPM(config['GPM_FILE'], grid)
+        gpm.save_lat_as_txt(config['GPM_LAT'])
+        gpm.save_long_as_txt(config['GPM_LON'])
 
     @classmethod
     def __interpolate_gpm_to_sispi(cls, month, gpm_lat, gpm_lon, sispi_lat, sispi_lon):
@@ -62,7 +95,7 @@ class PrepareData:
                 pass
     
     @classmethod
-    def __interpolate_gpm(cls, month_start=1, month_end=12):
+    def __interpolate_gpm(cls, threads=5, month_start=1, month_end=12):
         gpm_lat = np.loadtxt(config['GPM_LAT'], delimiter=',')
         gpm_lon = np.loadtxt(config['GPM_LON'], delimiter=',')
         sispi_lat = np.loadtxt(config['SISPI_LAT'], delimiter=',')
@@ -76,10 +109,9 @@ class PrepareData:
 
         i, c = 0, 0
         for process in process_list:
-            if c > 2:
-                process_list[i-3].join()
-                process_list[i-2].join()
-                process_list[i-1].join()
+            if c > threads:
+                for j in range(1, threads+2):
+                    process_list[i-j].join()
                 c = 0
             process.start()
 
@@ -88,27 +120,27 @@ class PrepareData:
 
     @classmethod
     def __join_sispi_and_gpm(cls):
-        sispi_files = fileslist(config['DIRS']['SISPI_SERIALIZED_OUTPUT_DIR'])
+        sispi_files = fileslist(config['DIRS']['SISPI_HOURLY_OUTPUT_DIR'])
 
         for file in sispi_files:
             filename = file.split('/')[-1].split('.')[0]
-            gpm_file = os.path.join(config['DIRS']['GPM_INTERPOLATED'], filename + '.txt')
+            gpm_file = os.path.join(config['DIRS']['GPM_INTERPOLATED'], '{}.txt'.format(filename))
 
             sispi = read_serialize_file(file)
             gpm = np.loadtxt(gpm_file, delimiter=",")
 
             # Replacing RAINNC or RAINC var for RAIN_SISPI
-            sispi.update({'RAIN_SISPI': sispi['RAINC']})
-            sispi.pop('RAINC')
+            #sispi.update({'RAIN_SISPI': sispi['RAINC']})
+            #sispi.pop('RAINC')
 
             # Adding GPM to dataset
             sispi.update({'RAIN_GPM': gpm})
 
-            write_serialize_file(sispi, os.path.join(config['DIRS']['DATASET'], filename + '.dat'))
+            write_serialize_file(sispi, os.path.join(config['DIRS']['DATASET'], '{}.dat'.format(filename)))
 
     @classmethod
-    def combine_sispi_and_gpm(cls, interpoated=True):
-        if not interpoated:
+    def combine_sispi_and_gpm(cls, interpolated=False):
+        if not interpolated:
             cls.__interpolate_gpm()
         cls.__join_sispi_and_gpm()
 
@@ -126,38 +158,43 @@ class PrepareData:
             }
             write_serialize_file(value, os.path.join(config['DIRS']['DATASET_HABANA'], file.split('/')[-1]))
 
+            # Save as txt too
+            value_txt = np.hstack(
+                (
+                    value['Q2'].reshape(375, 1),
+                    value['T2'].reshape(375, 1),
+                    value['RAIN_SISPI'].reshape(375, 1),
+                    value['RAIN_GPM'].reshape(375, 1)
+                )
+            )
+
+            np.savetxt(os.path.join(config['DIRS']['DATASET_HABANA_TXT'], file.split('/')[-1].split('.')[0]+'.txt'), value_txt, fmt='%7.2f', delimiter=',')
+
     @classmethod
-    def prepare_train_dataset(cls, fname, series_len=6, point=(0, 0), dataset_is_complete=True):
+    def prepare_train_dataset(cls, fname, series_len=5, point=(0, 0), dataset_is_complete=True):
         dataset, series = [], []
         first_line = True
         count = 0
 
-        #dataset_habana = fileslist("/home/maibyssl/Ariel/rain/ariel/data/full_dataset")
         dataset_habana = fileslist(config['DIRS']['DATASET_HABANA'])
         dataset_habana.sort()
 
         for file in dataset_habana:
             data = read_serialize_file(file)
 
-            if dataset_is_complete:
-                # If dataset have all days-hours its not necesary read each file
-                if first_line:
-                    for i in range(series_len):
-                        aux_data = read_serialize_file(dataset_habana[count - i])
-                        value = aux_data['RAIN_SISPI'][point[0], point[1]]
-                        series.insert(0, value)
-                    first_line = False
-                else:
-                    series = dataset[count - 1][1:series_len]
-                    series.append(data['RAIN_SISPI'][point[0], point[1]])
-
-                series.append(data['RAIN_GPM'][point[0], point[1]])
-                dataset.append(series)
-                count += 1
-
+            if first_line:
+                for i in range(series_len):
+                    aux_data = read_serialize_file(dataset_habana[count - i])
+                    value = aux_data['RAIN_SISPI'][point[0], point[1]]
+                    series.insert(0, value)
+                first_line = False
             else:
-                # Preguntar a Maybis por la implementacion que hice si la incluyo o no
-                pass
+                series = dataset[count - 1][1:series_len]
+                series.append(data['RAIN_SISPI'][point[0], point[1]])
+
+            series.append(data['RAIN_GPM'][point[0], point[1]])
+            dataset.append(series)
+            count += 1
 
         if fname:
             np.savetxt(fname, dataset, delimiter=',', fmt='%7.2f')
